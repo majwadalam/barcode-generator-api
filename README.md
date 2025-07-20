@@ -1,6 +1,6 @@
-# 📊 Barcode Generator API
+# 📊 Barcode & QR Code Generator API v2.0
 
-A high-performance REST API built with FastAPI for generating barcode images in multiple formats. Perfect for inventory management, retail systems, e-commerce platforms, and any application requiring barcode generation.
+A comprehensive REST API built with FastAPI for generating barcodes, QR codes, and scanning them from images. Perfect for inventory management, retail systems, e-commerce platforms, logistics, and any application requiring code generation and recognition.
 
 ![Python](https://img.shields.io/badge/python-v3.8+-blue.svg)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.104.1-green.svg)
@@ -10,12 +10,14 @@ A high-performance REST API built with FastAPI for generating barcode images in 
 ## ✨ Features
 
 - **🎯 Multiple Formats**: Support for 12+ barcode formats (Code 128, EAN-13, UPC-A, ISBN, etc.)
+- **📱 QR Code Support**: Generate QR codes with customizable error correction and styling
+- **🔍 Image Scanning**: Scan and decode barcodes/QR codes from uploaded images
 - **⚡ High Performance**: Built with FastAPI for fast, async request handling
-- **🎨 Customizable**: Control dimensions, colors, fonts, and styling
-- **📱 Flexible Output**: Base64 encoded images or direct PNG downloads
-- **🔒 Robust Validation**: Built-in data validation for each barcode format
-- **📚 Auto Documentation**: Interactive API docs with Swagger UI
-- **🧪 Well Tested**: Comprehensive test suite with pytest
+- **🎨 Customizable**: Control dimensions, colors, fonts, error correction, and styling
+- **📁 Flexible Output**: Base64 encoded images or direct PNG downloads
+- **🔒 Robust Validation**: Built-in data validation with comprehensive Pydantic schemas
+- **📚 Auto Documentation**: Interactive OpenAPI docs with detailed schemas
+- **🧪 Well Tested**: Comprehensive test suite
 - **🐳 Docker Ready**: Containerized deployment support
 
 ## 🚀 Quick Start
@@ -48,7 +50,9 @@ python main.py
 - **Interactive Docs**: http://localhost:8000/docs
 - **ReDoc Documentation**: http://localhost:8000/redoc
 
-## 📋 Supported Barcode Formats
+## 📋 Supported Formats
+
+### Barcode Formats
 
 | Format | Description | Use Case | Data Requirements |
 |--------|-------------|----------|-------------------|
@@ -62,21 +66,33 @@ python main.py
 | `jan` | JAN | Japanese products | Variable |
 | `issn` | ISSN | Magazines/journals | Variable |
 | `itf` | ITF | Logistics/shipping | Variable |
+| `pzn` | PZN | Pharmaceutical products | Variable |
 
-## 🛠️ API Usage
+### QR Codes
 
-### Generate Barcode (Base64)
+- **Variable Data Length**: From URLs to large text blocks
+- **Error Correction**: L (~7%), M (~15%), Q (~25%), H (~30%)
+- **Customizable Styling**: Colors, box size, border
+- **High Capacity**: Up to 4,296 alphanumeric characters
 
-**POST** `/generate`
+## 🛠️ API Endpoints
+
+### 1. Generate Barcode
+**POST** `/create-barcode`
+
+Generate barcodes with customizable styling options.
 
 ```bash
-curl -X POST "http://localhost:8000/generate" \
+curl -X POST "http://localhost:8000/create-barcode" \
      -H "Content-Type: application/json" \
      -d '{
        "data": "HELLO123",
        "format": "code128",
+       "return_format": "base64",
        "width": 3.0,
-       "height": 20.0
+       "height": 20.0,
+       "background_color": "white",
+       "foreground_color": "black"
      }'
 ```
 
@@ -91,44 +107,99 @@ curl -X POST "http://localhost:8000/generate" \
 }
 ```
 
-### Download Barcode Image
+### 2. Generate QR Code
+**POST** `/create-qr-code`
 
-**POST** `/generate/image`
+Generate QR codes with error correction and styling options.
 
 ```bash
-curl -X POST "http://localhost:8000/generate/image" \
+curl -X POST "http://localhost:8000/create-qr-code" \
      -H "Content-Type: application/json" \
-     -d '{"data": "PRODUCT123", "format": "code128"}' \
-     --output barcode.png
+     -d '{
+       "data": "https://example.com",
+       "return_format": "base64",
+       "error_correction": "M",
+       "box_size": 10,
+       "border": 4,
+       "fill_color": "black",
+       "back_color": "white"
+     }'
 ```
 
-### Quick Generation
+### 3. Scan Image
+**POST** `/scan-image`
 
-**GET** `/generate/quick`
+Upload an image to scan and decode any barcodes or QR codes.
 
 ```bash
-# Simple generation
-curl "http://localhost:8000/generate/quick?data=QUICK123&format=code128"
-
-# Download as image
-curl "http://localhost:8000/generate/quick?data=QUICK123&format=code128&return_image=true" --output quick_barcode.png
+curl -X POST "http://localhost:8000/scan-image" \
+     -F "image=@barcode_image.png"
 ```
+
+**Response:**
+```json
+{
+  "success": true,
+  "codes_found": 2,
+  "results": [
+    {
+      "data": "SCANNED123",
+      "type": "CODE128",
+      "quality": null,
+      "polygon": [[10, 10], [200, 10], [200, 50], [10, 50]]
+    },
+    {
+      "data": "https://example.com",
+      "type": "QRCODE",
+      "quality": null,
+      "polygon": [[250, 10], [350, 10], [350, 110], [250, 110]]
+    }
+  ],
+  "message": "Scan completed. Found 2 code(s)."
+}
+```
+
+### 4. Get Supported Formats
+**GET** `/supported-formats`
+
+Get information about all supported formats and capabilities.
+
+### 5. Health Check
+**GET** `/health`
+
+Check API health status for monitoring and load balancing.
 
 ## 🎨 Customization Options
 
-All generation endpoints support these styling parameters:
+### Barcode Styling
 
 ```json
 {
   "data": "STYLED123",
   "format": "code128",
-  "width": 3.0,           // Module width in mm
-  "height": 25.0,         // Module height in mm
-  "quiet_zone": 6.5,      // Quiet zone width in mm
-  "font_size": 14,        // Text font size
-  "text_distance": 5.0,   // Distance between barcode and text
-  "background": "white",  // Background color
-  "foreground": "black"   // Foreground color
+  "return_format": "base64",
+  "width": 3.0,                    // Module width
+  "height": 25.0,                  // Module height
+  "quiet_zone": 6.5,               // Quiet zone width
+  "font_size": 14,                 // Text font size (1-100)
+  "text_distance": 5.0,            // Distance between barcode and text
+  "background_color": "white",     // Background color
+  "foreground_color": "black"      // Foreground color
+}
+```
+
+### QR Code Options
+
+```json
+{
+  "data": "QR Code Data",
+  "return_format": "image",
+  "version": 1,                    // QR version (1-40)
+  "error_correction": "M",         // L, M, Q, H
+  "box_size": 10,                  // Size of each box in pixels
+  "border": 4,                     // Border size in boxes
+  "fill_color": "black",           // Fill color
+  "back_color": "white"            // Background color
 }
 ```
 
@@ -139,13 +210,14 @@ All generation endpoints support these styling parameters:
 ```python
 import requests
 import base64
+from PIL import Image
+import io
 
 # Generate barcode
-response = requests.post('http://localhost:8000/generate', json={
+response = requests.post('http://localhost:8000/create-barcode', json={
     "data": "PYTHON123",
     "format": "code128",
-    "width": 3.0,
-    "height": 20.0
+    "return_format": "base64"
 })
 
 if response.status_code == 200:
@@ -156,6 +228,31 @@ if response.status_code == 200:
     with open('barcode.png', 'wb') as f:
         f.write(image_data)
     print("Barcode saved!")
+
+# Generate QR code
+qr_response = requests.post('http://localhost:8000/create-qr-code', json={
+    "data": "https://python.org",
+    "return_format": "base64",
+    "error_correction": "H"
+})
+
+if qr_response.status_code == 200:
+    qr_result = qr_response.json()
+    qr_image_data = base64.b64decode(qr_result['image_base64'])
+    with open('qrcode.png', 'wb') as f:
+        f.write(qr_image_data)
+    print("QR code saved!")
+
+# Scan an image
+with open('barcode.png', 'rb') as f:
+    scan_response = requests.post('http://localhost:8000/scan-image', 
+                                  files={'image': f})
+
+if scan_response.status_code == 200:
+    scan_result = scan_response.json()
+    print(f"Found {scan_result['codes_found']} codes:")
+    for code in scan_result['results']:
+        print(f"- {code['type']}: {code['data']}")
 ```
 
 ### JavaScript/Node.js
@@ -163,12 +260,14 @@ if response.status_code == 200:
 ```javascript
 const axios = require('axios');
 const fs = require('fs');
+const FormData = require('form-data');
 
 async function generateBarcode() {
     try {
-        const response = await axios.post('http://localhost:8000/generate', {
+        const response = await axios.post('http://localhost:8000/create-barcode', {
             data: 'JS123',
-            format: 'code128'
+            format: 'code128',
+            return_format: 'base64'
         });
 
         if (response.data.success) {
@@ -181,27 +280,44 @@ async function generateBarcode() {
     }
 }
 
+async function generateQRCode() {
+    try {
+        const response = await axios.post('http://localhost:8000/create-qr-code', {
+            data: 'https://nodejs.org',
+            return_format: 'image'
+        }, {
+            responseType: 'stream'
+        });
+
+        response.data.pipe(fs.createWriteStream('qrcode.png'));
+        console.log('QR code saved!');
+    } catch (error) {
+        console.error('Error:', error.response?.data || error.message);
+    }
+}
+
+async function scanImage() {
+    try {
+        const form = new FormData();
+        form.append('image', fs.createReadStream('barcode.png'));
+
+        const response = await axios.post('http://localhost:8000/scan-image', form, {
+            headers: form.getHeaders()
+        });
+
+        console.log(`Found ${response.data.codes_found} codes:`);
+        response.data.results.forEach(code => {
+            console.log(`- ${code.type}: ${code.data}`);
+        });
+    } catch (error) {
+        console.error('Error:', error.response?.data || error.message);
+    }
+}
+
+// Run examples
 generateBarcode();
-```
-
-### cURL Examples
-
-```bash
-# Generate EAN-13 barcode
-curl -X POST "http://localhost:8000/generate" \
-     -H "Content-Type: application/json" \
-     -d '{"data": "123456789012", "format": "ean13"}'
-
-# Generate UPC barcode with custom styling
-curl -X POST "http://localhost:8000/generate/image" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "data": "12345678901",
-       "format": "upc",
-       "width": 4.0,
-       "height": 25.0,
-       "font_size": 16
-     }' --output upc_barcode.png
+generateQRCode();
+// scanImage(); // Run after generating codes
 ```
 
 ## 🧪 Testing
@@ -210,28 +326,28 @@ Run the test suite:
 
 ```bash
 # Install test dependencies (if not already installed)
- pip install -r requirement.txt 
+pip install -r requirements.txt
 
 # Run all tests
-pytest text.py -v
+pytest test.py -v
 
 # Run specific test
-pytest text.py::test_generate_barcode_code128 -v
+pytest test.py::test_create_barcode -v
 
 # Run tests with coverage
-pytest --cov=main text.py
+pytest --cov=main test.py
 ```
 
-## 🐳 Docker Deployment (if implemented)
+## 🐳 Docker Deployment
 
 ### Build and Run
 
 ```bash
 # Build Docker image
-docker build -t barcode-api .
+docker build -t barcode-qr-api .
 
 # Run container
-docker run -p 8000:8000 barcode-api
+docker run -p 8000:8000 barcode-qr-api
 ```
 
 ### Docker Compose
@@ -250,9 +366,9 @@ docker-compose down
 barcode-generator-api/
 ├── main.py              # FastAPI application
 ├── requirements.txt     # Python dependencies
-├── text.py             # Test suite
-├── Dockerfile          # Docker configuration
-├── docker-compose.yml  # Docker Compose setup
+├── test.py             # Test suite
+├── curl_examples.sh    # cURL examples
+├── Procfile           # Heroku deployment
 ├── .gitignore         # Git ignore rules
 └── README.md          # This file
 ```
@@ -261,27 +377,37 @@ barcode-generator-api/
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/` | API information and health check |
+| `GET` | `/` | API information |
+| `POST` | `/create-barcode` | Generate barcode with styling options |
+| `POST` | `/create-qr-code` | Generate QR code with customization |
+| `POST` | `/scan-image` | Scan image for barcodes/QR codes |
+| `GET` | `/supported-formats` | List supported formats |
 | `GET` | `/health` | Health check endpoint |
-| `GET` | `/formats` | List supported barcode formats |
-| `POST` | `/generate` | Generate barcode (returns base64) |
-| `POST` | `/generate/image` | Generate barcode (returns PNG file) |
-| `GET` | `/generate/quick` | Quick generation with query params |
 
-## ⚙️ Environment Variables
+## 🔧 Input/Output Schemas
 
-Create a `.env` file for configuration:
+All endpoints use comprehensive Pydantic schemas for validation:
 
-```env
-ENV=production
-HOST=0.0.0.0
-PORT=8000
-LOG_LEVEL=info
-```
+### BarcodeGenerationRequest
+- `data`: String to encode (required)
+- `format`: Barcode format (required)
+- `return_format`: "base64" or "image" (default: "base64")
+- Styling options: width, height, colors, fonts, etc.
+
+### QRCodeGenerationRequest
+- `data`: String to encode (required)
+- `return_format`: "base64" or "image" (default: "base64")
+- QR options: version, error_correction, box_size, border, colors
+
+### ScanResponse
+- `success`: Boolean operation status
+- `codes_found`: Number of detected codes
+- `results`: Array of ScanResult objects
+- `message`: Status message
 
 ## 🚨 Error Handling
 
-The API provides detailed error responses:
+The API provides detailed error responses with proper HTTP status codes:
 
 ### Validation Errors (422)
 ```json
@@ -290,7 +416,8 @@ The API provides detailed error responses:
     {
       "loc": ["body", "format"],
       "msg": "value is not a valid enumeration member",
-      "type": "type_error.enum"
+      "type": "type_error.enum",
+      "input": "invalid_format"
     }
   ]
 }
@@ -299,98 +426,69 @@ The API provides detailed error responses:
 ### Bad Request (400)
 ```json
 {
-  "detail": "Invalid data length for ean13 format. Expected numeric data with specific length."
-}
-```
-
-### Server Error (500)
-```json
-{
-  "detail": "Internal server error: <error description>"
+  "detail": "Failed to generate barcode: Invalid data for format code128"
 }
 ```
 
 ## 📈 Performance
 
 - **Throughput**: 1000+ requests/second on standard hardware
-- **Response Time**: <100ms for simple barcodes
-- **Memory Usage**: ~50MB base + ~1MB per concurrent request
+- **Response Time**: <100ms for simple codes, <500ms for complex QR codes
+- **Memory Usage**: ~100MB base + ~2MB per concurrent request
 - **Scaling**: Stateless design allows horizontal scaling
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-### Development Setup
-
-```bash
-# Clone your fork
-git clone https://github.com/yourusername/barcode-generator-api.git
-
-# Install development dependencies
-pip install -r requirements.txt
-
-# Run tests
-pytest text.py -v
-
-# Start development server
-uvicorn main:app --reload
-```
-
-## 📝 Common Use Cases
+## 🤝 Use Cases
 
 ### Retail & E-commerce
-- Product labeling
-- Inventory tracking
-- Price tags
-- Shipping labels
+- Product labeling and QR codes for product info
+- Inventory tracking with barcodes
+- Digital receipts and payment QR codes
+- Shipping labels and tracking
 
 ### Healthcare
-- Patient identification
-- Medication tracking
+- Patient identification wristbands
+- Medication tracking and verification
 - Equipment management
-- Sample labeling
+- Digital health records access
 
-### Manufacturing
-- Asset tracking
-- Quality control
-- Work-in-progress tracking
-- Component identification
+### Manufacturing & Logistics
+- Asset tracking and identification
+- Supply chain management
+- Quality control checkpoints
+- Warehouse automation
 
-### Logistics
-- Package tracking
-- Warehouse management
-- Supply chain visibility
-- Route optimization
+### Marketing & Events
+- Digital business cards (QR codes)
+- Event tickets and check-ins
+- Promotional campaigns
+- Contact-free menus and information
 
 ## 🔧 Troubleshooting
 
 ### Common Issues
 
+**Issue: `ModuleNotFoundError: No module named 'cv2'`**
+```bash
+# Solution: Install OpenCV
+pip install opencv-python
+```
+
+**Issue: `ModuleNotFoundError: No module named 'pyzbar'`**
+```bash
+# Solution: Install pyzbar for scanning
+pip install pyzbar
+```
+
 **Issue: `AttributeError: 'FreeTypeFont' object has no attribute 'getsize'`**
 ```bash
-# Solution: Downgrade Pillow
-pip uninstall Pillow
-pip install Pillow==9.5.0
+# Solution: Update Pillow
+pip install --upgrade Pillow
 ```
 
-**Issue: `ModuleNotFoundError: No module named 'barcode'`**
-```bash
-# Solution: Install barcode library
-pip install python-barcode[images]
-```
-
-**Issue: Tests failing with connection errors**
-```bash
-# Solution: Start the API server first
-python main.py
-# Then run tests in another terminal
-pytest text.py -v
-```
+**Issue: Scanning not working**
+- Ensure image is clear and high contrast
+- Try preprocessing image (brightness, contrast)
+- Check supported image formats (PNG, JPEG, etc.)
 
 ## 📄 License
 
@@ -400,6 +498,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - [FastAPI](https://fastapi.tiangolo.com/) - Modern, fast web framework
 - [python-barcode](https://python-barcode.readthedocs.io/) - Barcode generation library
+- [qrcode](https://pypi.org/project/qrcode/) - QR code generation library
+- [pyzbar](https://pypi.org/project/pyzbar/) - Barcode scanning library
+- [OpenCV](https://opencv.org/) - Computer vision library
 - [Pillow](https://pillow.readthedocs.io/) - Image processing library
 
 ## 📧 Support
@@ -409,6 +510,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Built with ❤️ using FastAPI and Python**
+**Built with ❤️ using FastAPI, Python, and modern libraries**
 
 ⭐ Star this repository if you find it helpful!

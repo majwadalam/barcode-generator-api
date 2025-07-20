@@ -5,3 +5,6 @@ pydantic
 pytest
 httpx
 pytest-asyncio
+qrcode[pil]
+pyzbar
+opencv-python
